@@ -91,6 +91,14 @@ export default function Layout() {
               The Local News
             </a>
           </p>
+          <p className="text-xs text-gray-400 mt-2">
+            <a
+              href="/api/story/feed.xml"
+              className="text-sea-600 hover:text-sea-700 underline"
+            >
+              Subscribe via RSS
+            </a>
+          </p>
         </div>
       </footer>
     </div>

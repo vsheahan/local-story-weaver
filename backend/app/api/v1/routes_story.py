@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -278,4 +278,70 @@ async def generate_today_story(
             created_at=chapter.created_at,
             news_items=news_items,
         ),
+    )
+
+
+@router.get("/feed.xml", response_class=Response)
+async def get_rss_feed(
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Get RSS feed of recent stories."""
+    import html
+    from datetime import datetime
+
+    # Get recent stories
+    result = await db.execute(
+        select(StoryChapter)
+        .order_by(desc(StoryChapter.chapter_date))
+        .limit(20)
+    )
+    chapters = result.scalars().all()
+
+    # Build RSS XML
+    site_url = "https://ipswichstoryweaver.com"
+
+    items_xml = ""
+    for ch in chapters:
+        # Format date as RFC 822
+        pub_date = datetime.combine(ch.chapter_date, datetime.min.time())
+        pub_date_str = pub_date.strftime("%a, %d %b %Y %H:%M:%S +0000")
+
+        # Escape HTML entities in content
+        title_escaped = html.escape(ch.title)
+        body_escaped = html.escape(ch.body)
+
+        # Convert newlines to <br> for description
+        body_html = body_escaped.replace("\n\n", "</p><p>").replace("\n", "<br/>")
+        body_html = f"<p>{body_html}</p>"
+
+        items_xml += f"""
+    <item>
+      <title>{title_escaped}</title>
+      <link>{site_url}/chapter/{ch.chapter_date}</link>
+      <guid isPermaLink="true">{site_url}/chapter/{ch.chapter_date}</guid>
+      <pubDate>{pub_date_str}</pubDate>
+      <description><![CDATA[{body_html}]]></description>
+    </item>"""
+
+    rss_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ipswich Story Weaver</title>
+    <link>{site_url}</link>
+    <description>Daily tales woven from weather, tides, and local news in Ipswich, Massachusetts</description>
+    <language>en-us</language>
+    <atom:link href="{site_url}/api/story/feed.xml" rel="self" type="application/rss+xml"/>
+    <lastBuildDate>{datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")}</lastBuildDate>
+    <image>
+      <url>{site_url}/favicon.svg</url>
+      <title>Ipswich Story Weaver</title>
+      <link>{site_url}</link>
+    </image>{items_xml}
+  </channel>
+</rss>"""
+
+    return Response(
+        content=rss_xml,
+        media_type="application/rss+xml",
+        headers={"Content-Type": "application/rss+xml; charset=utf-8"}
     )
