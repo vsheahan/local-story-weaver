@@ -82,29 +82,21 @@ export default function About() {
 
         <section>
           <h3 className="text-lg font-semibold text-sea-700 mb-3">
-            Why I Made This
+            Why I Built This
           </h3>
           <p>
-            Ipswich Story Weaver is an experiment in using AI to create something
-            gentle and grounded — a daily meditation on place rather than another
-            feed of headlines.
+            I created Ipswich Story Weaver as a daily meditation on place—an antidote
+            to a feed of fractured headlines. In a world where national news is often
+            engineered to make us feel helpless, I wanted to turn the lens back to the
+            human scale.
           </p>
           <p>
-            This is an attempt at "Slow AI." Instead of trying to speed up a
-            workflow, it uses technology to encourage slowing down and appreciating
-            a specific sense of place. It's a sophisticated technical implementation
-            of a very humanistic idea.
-          </p>
-          <p>
-            The national news can feel like noise — loud, fractured, designed to
-            unsettle. Stories engineered to make us feel helpless and angry at
-            people we'll never meet. I wanted to create something quieter, and I
-            started by looking closer to home. Local news operates at human scale —
-            neighbors helping neighbors, small decisions that shape our actual
-            streets and schools. Here, those stories arrive embedded in place and
-            season, held by land that has witnessed countless generations of
-            concerns rise and fall like the tides. Not an escape from reality, but
-            a gentler way of meeting it.
+            This is an attempt at "Slow AI": using technology to deepen our connection
+            to where we live rather than simply speeding up our lives. Here, the news
+            isn't just information; it is woven into the seasons and the land. By viewing
+            our local stories through the rhythm of the tides and the history of the town,
+            we find a perspective that is quieter and more enduring. It is not an escape
+            from the world, but a gentler way of witnessing it.
           </p>
         </section>
 
