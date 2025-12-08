@@ -49,7 +49,7 @@ class Settings(BaseSettings):
 
     # Story generation
     max_news_items_per_story: int = 3
-    story_generation_hour: int = 6  # 6 AM
+    story_generation_hour: int = 11  # 11 AM ET
 
     # News scraping
     news_source_url: str = "https://thelocalnews.news/category/ipswich/"
