@@ -86,7 +86,7 @@ export default function StoryDisplay({ chapter, showMeta = true }: StoryDisplayP
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic pl-4 border-l-2 border-gray-200">
-                No local news stories for Ipswich, MA were published today.
+                No local news stories for Ipswich, MA were published at the time today's story automation ran.
               </p>
             )}
           </div>
