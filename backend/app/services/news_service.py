@@ -2,7 +2,7 @@
 
 import logging
 import re
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Optional
 from email.utils import parsedate_to_datetime
 
@@ -172,10 +172,11 @@ class NewsService:
                     except Exception:
                         pass
 
-            # Only include articles from today (based on actual article date, not RSS timestamp)
+            # Include articles from today and yesterday (24-hour window for story generation)
             today = date.today()
-            if article_date is None or article_date != today:
-                logger.debug(f"Skipping article not from today ({article_date}): {title[:50]}")
+            yesterday = today - timedelta(days=1)
+            if article_date is None or article_date < yesterday:
+                logger.debug(f"Skipping article older than yesterday ({article_date}): {title[:50]}")
                 continue
 
             articles.append({
@@ -227,14 +228,18 @@ class NewsService:
         return None
 
     async def get_news_for_date(self, target_date: date, limit: int = 5) -> list[NewsItem]:
-        """Get news items for a specific date.
+        """Get news items within 24-hour window ending at target date.
+
+        This includes articles from target_date AND the previous day, to capture
+        late evening articles that may have been published after the previous
+        day's story automation ran.
 
         Args:
             target_date: The date to get news for.
             limit: Maximum number of items to return.
 
         Returns:
-            List of NewsItem objects for that date, filtered by actual article URL date.
+            List of NewsItem objects from target_date and previous day.
         """
         # Fetch recent items (wider window to account for RSS timestamp issues)
         # Then filter by actual article date from URL
@@ -245,11 +250,12 @@ class NewsService:
         )
         all_items = list(result.scalars().all())
 
-        # Filter by actual article date from URL
+        # Include articles from target_date and the previous day (24-hour window)
+        previous_day = target_date - timedelta(days=1)
         matching_items = []
         for item in all_items:
             article_date = self._get_article_date_from_url(item.article_url)
-            if article_date == target_date:
+            if article_date in (target_date, previous_day):
                 matching_items.append(item)
                 if len(matching_items) >= limit:
                     break
