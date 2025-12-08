@@ -12,6 +12,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.news import NewsItem
+from app.models.story import StoryChapter
 
 logger = logging.getLogger(__name__)
 
@@ -234,13 +235,20 @@ class NewsService:
         late evening articles that may have been published after the previous
         day's story automation ran.
 
+        Excludes articles that were already used in recent stories to prevent
+        the same news from appearing in consecutive days' stories.
+
         Args:
             target_date: The date to get news for.
             limit: Maximum number of items to return.
 
         Returns:
-            List of NewsItem objects from target_date and previous day.
+            List of NewsItem objects from target_date and previous day,
+            excluding any already used in recent stories.
         """
+        # Get IDs of news items already used in recent stories (last 7 days)
+        used_ids = await self._get_recently_used_news_ids()
+
         # Fetch recent items (wider window to account for RSS timestamp issues)
         # Then filter by actual article date from URL
         result = await self.db.execute(
@@ -251,9 +259,15 @@ class NewsService:
         all_items = list(result.scalars().all())
 
         # Include articles from target_date and the previous day (24-hour window)
+        # Exclude articles already used in recent stories
         previous_day = target_date - timedelta(days=1)
         matching_items = []
         for item in all_items:
+            # Skip if already used in a recent story
+            if item.id in used_ids:
+                logger.debug(f"Skipping already-used article: {item.headline[:50]}")
+                continue
+
             article_date = self._get_article_date_from_url(item.article_url)
             if article_date in (target_date, previous_day):
                 matching_items.append(item)
@@ -261,6 +275,29 @@ class NewsService:
                     break
 
         return matching_items
+
+    async def _get_recently_used_news_ids(self, days: int = 7) -> set[int]:
+        """Get IDs of news items used in stories from the last N days.
+
+        Args:
+            days: Number of days to look back.
+
+        Returns:
+            Set of news item IDs that have been used recently.
+        """
+        cutoff_date = date.today() - timedelta(days=days)
+        result = await self.db.execute(
+            select(StoryChapter.used_news_item_ids)
+            .where(StoryChapter.chapter_date >= cutoff_date)
+        )
+        rows = result.scalars().all()
+
+        used_ids: set[int] = set()
+        for ids_list in rows:
+            if ids_list:
+                used_ids.update(ids_list)
+
+        return used_ids
 
     async def get_news_items_by_ids(self, ids: list[int]) -> list[NewsItem]:
         """Fetch specific news items by their IDs."""
