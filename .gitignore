@@ -69,3 +69,7 @@ logs/
 # Lambda build artifacts
 build/lambda/
 build/*.zip
+
+# Build artifacts
+backend/package/
+backend/lambda.zip
