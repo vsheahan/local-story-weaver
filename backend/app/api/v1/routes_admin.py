@@ -1,10 +1,10 @@
 """Admin API routes (internal/development use only).
 
 These endpoints are for development and administrative purposes.
-In production, these should be protected or disabled.
+Protected by API key authentication in production.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -16,9 +16,35 @@ router = APIRouter()
 settings = get_settings()
 
 
+async def verify_admin_api_key(x_api_key: str = Header(None)) -> str:
+    """Verify the admin API key.
+
+    If ADMIN_API_KEY is not set, allows access (development mode).
+    If set, requires matching X-API-Key header.
+    """
+    if not settings.admin_api_key:
+        # No API key configured - allow access (dev mode)
+        return "dev-mode"
+
+    if not x_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing X-API-Key header",
+        )
+
+    if x_api_key != settings.admin_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+        )
+
+    return x_api_key
+
+
 @router.post("/refresh-news", response_model=RefreshNewsResponse)
 async def refresh_ipswich_news(
     db: AsyncSession = Depends(get_db),
+    _api_key: str = Depends(verify_admin_api_key),
 ) -> RefreshNewsResponse:
     """Refresh Ipswich news from The Local News.
 

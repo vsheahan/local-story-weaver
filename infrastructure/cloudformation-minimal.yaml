@@ -49,6 +49,12 @@ Parameters:
     Default: ''
     Description: eBird API key for bird sightings (get free at ebird.org/api/keygen)
 
+  AdminApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: API key for admin endpoints (leave blank to allow unauthenticated access in dev)
+
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, '']]
 
@@ -198,6 +204,7 @@ Resources:
           ANTHROPIC_API_KEY: !Ref AnthropicApiKey
           WEATHER_API_KEY: !Ref WeatherApiKey
           EBIRD_API_KEY: !Ref EBirdApiKey
+          ADMIN_API_KEY: !Ref AdminApiKey
           ENVIRONMENT: production
       Code:
         ZipFile: |
@@ -214,12 +221,18 @@ Resources:
       AuthType: NONE
       TargetFunctionArn: !Ref BackendLambda
       Cors:
-        AllowOrigins:
-          - '*'
+        AllowOrigins: !If
+          - HasDomain
+          - - !Sub 'https://${DomainName}'
+            - !Sub 'https://www.${DomainName}'
+          - - !Sub 'https://${CloudFrontDistribution.DomainName}'
         AllowMethods:
-          - '*'
+          - GET
+          - POST
+          - OPTIONS
         AllowHeaders:
-          - '*'
+          - Content-Type
+          - X-API-Key
 
   LambdaUrlPermission:
     Type: AWS::Lambda::Permission

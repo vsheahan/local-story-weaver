@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +24,31 @@ from app.services.llm_story_generator import LLMStoryGeneratorWithFallback
 
 router = APIRouter()
 settings = get_settings()
+
+
+async def verify_admin_api_key(x_api_key: str = Header(None)) -> str:
+    """Verify the admin API key for protected endpoints.
+
+    If ADMIN_API_KEY is not set, allows access (development mode).
+    If set, requires matching X-API-Key header.
+    """
+    if not settings.admin_api_key:
+        # No API key configured - allow access (dev mode)
+        return "dev-mode"
+
+    if not x_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing X-API-Key header",
+        )
+
+    if x_api_key != settings.admin_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+        )
+
+    return x_api_key
 
 
 def get_story_generator():
@@ -191,6 +216,7 @@ async def generate_today_story(
     force: bool = Query(default=False, description="Force regeneration if chapter exists"),
     target_date: Optional[date] = Query(default=None, description="Generate for a specific date (default: today)"),
     db: AsyncSession = Depends(get_db),
+    _api_key: str = Depends(verify_admin_api_key),
 ) -> GenerateStoryResponse:
     """Generate today's story chapter.
 

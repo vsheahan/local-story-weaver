@@ -70,6 +70,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # Admin API Key (for protected endpoints)
+    admin_api_key: Optional[str] = None
+
 
 @lru_cache
 def get_settings() -> Settings:
